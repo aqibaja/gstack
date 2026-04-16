@@ -1,5 +1,10 @@
 // BrowserAutoDrive Core — Types, State Machine, and Agent Loop
 
+// Re-export logging and error boundary utilities
+export { Logger, LogLevel, LogEntry, getLogger, resetLogger } from "./logger";
+export { AgentError, ErrorCodes, errorBoundary, withRetry, withTimeout } from "./errors";
+export type { ErrorCode } from "./errors";
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface ElementDescriptor {
