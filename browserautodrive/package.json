@@ -1,0 +1,21 @@
+{
+  "name": "browserautodrive",
+  "version": "0.1.0",
+  "private": false,
+  "description": "BrowserAutoDrive - AI-powered browser automation",
+  "bin": {
+    "browserautodrive": "./packages/cli/bin/cli.js"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "turbo run test",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.0"
+  }
+}

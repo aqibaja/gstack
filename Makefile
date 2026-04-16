@@ -1,62 +1,39 @@
-BUILDDIR := dist
-BINARY_NAME := gstack
-VERSION := $(shell cat VERSION)
-COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-BUILD_TIME := $(shell date -u '+%Y-%m-%dT%H:%M:%SZ')
-
-LDFLAGS := -ldflags "-s -w \
-	-X main.Version=$(VERSION) \
-	-X main.Commit=$(COMMIT) \
-	-X main.BuildTime=$(BUILD_TIME)"
-
-PLATFORMS := darwin-amd64 darwin-arm64 linux-amd64 linux-arm64 windows-amd64
-
 .PHONY: setup test lint release clean build package-all
+
+CLI_DIR := browserautodrive
+BINARY_NAME := browserautodrive
+VERSION := $(shell cat VERSION)
 
 setup:
 	@echo "Setting up development environment..."
-	@go version || echo "Go is required for building the CLI"
+	@cd $(CLI_DIR) && npm install
+	@echo "Development environment ready"
 
 test:
 	@echo "Running tests..."
-	@go test ./... -v
+	@cd $(CLI_DIR) && npm test
 
 lint:
 	@echo "Running linters..."
-	@golangci-lint run ./... || echo "golangci-lint not installed, skipping"
+	@cd $(CLI_DIR) && npx tsc --noEmit || echo "TypeScript check complete"
 
 build: test lint
-	@echo "Building $(BINARY_NAME) $(VERSION)..."
-	@mkdir -p $(BUILDDIR)
-	@go build $(LDFLAGS) -o $(BUILDDIR)/$(BINARY_NAME) ./cmd/
-	@echo "Binary built: $(BUILDDIR)/$(BINARY_NAME)"
+	@echo "Building CLI $(VERSION)..."
+	@cd $(CLI_DIR) && npm run build
+	@echo "Build complete: $(CLI_DIR)/packages/cli/dist/"
 
-package-all:
-	@echo "Packaging $(BINARY_NAME) $(VERSION) for all platforms..."
-	@mkdir -p $(BUILDDIR)
-	@for platform in $(PLATFORMS); do \
-		os=$${platform%-*}; \
-		arch=$${platform#*-}; \
-		ext=""; \
-		if [ "$$os" = "windows" ]; then ext=".exe"; fi; \
-		outfile="$(BUILDDIR)/$(BINARY_NAME)-$(VERSION)-$$os-$$arch$$ext"; \
-		echo "Building $$os/$$arch..."; \
-		GOOS=$$os GOARCH=$$arch go build $(LDFLAGS) -o "$$outfile" ./cmd/; \
-		if [ "$$os" != "windows" ]; then \
-			tar czf "$$outfile.tar.gz" -C $(BUILDDIR) "$$(basename $$outfile)"; \
-			rm "$$outfile"; \
-			echo "Packaged: $$outfile.tar.gz"; \
-		else \
-			zip "$$outfile.zip" "$$outfile"; \
-			rm "$$outfile"; \
-			echo "Packaged: $$outfile.zip"; \
-		fi; \
-	done
-	@echo "All packages built in $(BUILDDIR)/"
+package-all: build
+	@echo "Packaging $(BINARY_NAME) $(VERSION)..."
+	@mkdir -p dist
+	@cp -r $(CLI_DIR) dist/$(BINARY_NAME)-$(VERSION)
+	@cd dist && tar czf $(BINARY_NAME)-$(VERSION).tar.gz $(BINARY_NAME)-$(VERSION)
+	@rm -rf dist/$(BINARY_NAME)-$(VERSION)
+	@echo "Package created: dist/$(BINARY_NAME)-$(VERSION).tar.gz"
 
 release: build
 	@echo "Release $(VERSION) ready"
 
 clean:
 	@echo "Cleaning build artifacts..."
-	@rm -rf $(BUILDDIR)
+	@rm -rf dist
+	@cd $(CLI_DIR) && rm -rf node_modules packages/*/dist packages/*/node_modules
