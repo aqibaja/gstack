@@ -21,6 +21,11 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@browserautodrive/core": "^0.1.0",
+    "@browserautodrive/browser": "^0.1.0",
+    "@browserautodrive/observe": "^0.1.0",
+    "@browserautodrive/safety": "^0.1.0",
+    "@browserautodrive/llm": "^0.1.0",
     "commander": "^12.0.0"
   },
   "jest": {
