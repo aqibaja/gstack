@@ -31,10 +31,11 @@ describe('Integration Tests I1-I10', () => {
       mockedGetSnapshot.mockResolvedValue(mockSnapshot);
       
       // Act
-      const result = await getSnapshot('https://example.com');
+      const { page } = await launchBrowser('https://example.com');
+      const result = await getSnapshot(page);
       
       // Assert
-      expect(mockedLaunchBrowser).toHaveBeenCalled();
+      expect(mockedLaunchBrowser).toHaveBeenCalledWith('https://example.com');
       expect(mockedGetSnapshot).toHaveBeenCalledWith(mockPage);
       expect(result).toEqual(mockSnapshot);
     });
@@ -117,6 +118,9 @@ describe('Integration Tests I1-I10', () => {
 
   describe('I6: Error recovery retry success (Critical)', () => {
     it('should retry on element not found and succeed', async () => {
+      // Reset mock to clear any queued implementations from other tests
+      mockedExecuteAction.mockReset();
+      
       const action = {
         type: 'click',
         target: { selector: '#dynamic', confidence: 0.8 },
