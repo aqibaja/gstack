@@ -14,7 +14,13 @@
     "ts-jest": "^29.1.0",
     "typescript": "^5.0.0"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@browserautodrive/browser": "^0.1.0",
+    "@browserautodrive/core": "^0.1.0",
+    "@browserautodrive/llm": "^0.1.0",
+    "@browserautodrive/observe": "^0.1.0",
+    "@browserautodrive/safety": "^0.1.0"
+  },
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
