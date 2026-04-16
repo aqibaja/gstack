@@ -678,8 +678,8 @@ export class GoalParser {
       }
     }
 
-    const origin = this.extractEntity(input, /(?:from|departing|leaving)\s+([A-Z]{3}|[A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/i);
-    const destination = this.extractEntity(input, /(?:to|arriving|heading)\s+([A-Z]{3}|[A-Z][a-z]+(?:\s[A-Z][a-z]+)?)/i);
+    const origin = this.extractEntity(input, /(?:from|departing|leaving)\s+([A-Z]{3}|[A-Z][a-z]+(?:\s[A-Z][a-z]+)?)(?:\s|[,.;!?]|$)/i);
+    const destination = this.extractEntity(input, /(?:to|arriving|heading)\s+([A-Z]{3}|[A-Z][a-z]+(?:\s[A-Z][a-z]+)?)(?:\s|[,.;!?]|$)/i);
     const date = this.extractEntity(input, /(?:on|for|by)\s+(\d{4}-\d{2}-\d{2}|\w+\s+\d{1,2}(?:st|nd|rd|th)?)/i);
 
     const successCriteria = this.inferSuccessCriteria(input);
@@ -694,9 +694,20 @@ export class GoalParser {
     };
   }
 
+  private static readonly STOP_WORDS = new Set([
+    "the", "a", "an", "my", "your", "his", "her", "its", "our", "their",
+    "this", "that", "these", "those", "some", "any", "all", "each",
+    "every", "no", "not", "and", "or", "but", "in", "on", "at", "to",
+    "for", "with", "from", "by", "about", "of", "up", "out",
+  ]);
+
   private extractEntity(input: string, pattern: RegExp): string | undefined {
     const match = input.match(pattern);
-    return match?.[1];
+    const value = match?.[1];
+    if (value && GoalParser.STOP_WORDS.has(value.toLowerCase())) {
+      return undefined;
+    }
+    return value;
   }
 
   private inferSuccessCriteria(input: string): string {
