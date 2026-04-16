@@ -44,6 +44,7 @@ export type Action =
   | { type: "type"; target: ElementDescriptor; text: string; description: string }
   | { type: "scroll"; direction: "up" | "down"; amount: number }
   | { type: "select"; target: ElementDescriptor; value: string; description: string }
+  | { type: "submit"; target: ElementDescriptor; description: string }
   | { type: "extract"; description: string; dataType: string }
   | { type: "wait"; durationMs: number; reason: string }
   | { type: "ask_human"; question: string; options?: string[] }
