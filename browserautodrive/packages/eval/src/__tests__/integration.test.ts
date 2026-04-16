@@ -1,20 +1,15 @@
-import { launchBrowser, getSnapshot } from '@browserautodrive/browser';
+import { launchBrowser, executeBrowserAction } from '@browserautodrive/browser';
 import { extractObservation } from '@browserautodrive/observe';
-import { executeAction } from '@browserautodrive/core';
+import { AgentStateMachine } from '@browserautodrive/core';
+import { ActionValidator, SafetyGuard } from '@browserautodrive/safety';
 import { LLMProvider } from '@browserautodrive/llm';
-import { SafetyGuard } from '@browserautodrive/safety';
 
-// Mock all external modules
 jest.mock('@browserautodrive/browser');
 jest.mock('@browserautodrive/observe');
-jest.mock('@browserautodrive/core');
-jest.mock('@browserautodrive/llm');
-jest.mock('@browserautodrive/safety');
 
 const mockedLaunchBrowser = jest.mocked(launchBrowser);
-const mockedGetSnapshot = jest.mocked(getSnapshot);
+const mockedExecuteBrowserAction = jest.mocked(executeBrowserAction);
 const mockedExtractObservation = jest.mocked(extractObservation);
-const mockedExecuteAction = jest.mocked(executeAction);
 
 describe('Integration Tests I1-I10', () => {
   beforeEach(() => {
@@ -22,40 +17,50 @@ describe('Integration Tests I1-I10', () => {
   });
 
   describe('I1: Full observe cycle (Critical)', () => {
-    it('should launch browser and get snapshot', async () => {
-      // Arrange
-      const mockBrowser = { close: jest.fn() };
+    it('should launch browser and extract observation', async () => {
       const mockPage = { goto: jest.fn() };
-      const mockSnapshot = { url: 'https://example.com', title: 'Example' };
-      mockedLaunchBrowser.mockResolvedValue({ browser: mockBrowser, page: mockPage });
-      mockedGetSnapshot.mockResolvedValue(mockSnapshot);
-      
-      // Act
+      const mockBrowser = { close: jest.fn() };
+      const mockContext = { close: jest.fn() };
+      mockedLaunchBrowser.mockResolvedValue({
+        browser: mockBrowser as any,
+        context: mockContext as any,
+        page: mockPage as any,
+      });
+
+      const mockSnapshot = {
+        url: 'https://example.com',
+        title: 'Example',
+        screenshot: 'base64',
+        accessibilityTree: { role: 'root', name: 'page', children: [] },
+        interactiveElements: [],
+        viewportSize: { width: 1280, height: 720 },
+        scrollPosition: { x: 0, y: 0 },
+        timestamp: Date.now(),
+      };
+      mockedExtractObservation.mockResolvedValue(mockSnapshot as any);
+
       const { page } = await launchBrowser('https://example.com');
-      const result = await getSnapshot(page);
-      
-      // Assert
+      const result = await extractObservation(page);
+
       expect(mockedLaunchBrowser).toHaveBeenCalledWith('https://example.com');
-      expect(mockedGetSnapshot).toHaveBeenCalledWith(mockPage);
-      expect(result).toEqual(mockSnapshot);
+      expect(mockedExtractObservation).toHaveBeenCalledWith(mockPage);
+      expect(result.url).toBe('https://example.com');
+      expect(result.screenshot).toBe('base64');
     });
   });
 
   describe('I2: Click action round trip (Critical)', () => {
     it('should execute click action on static page', async () => {
-      // Arrange
       const action = {
-        type: 'click',
+        type: 'click' as const,
         target: { selector: '#button', confidence: 1.0 },
         description: 'Click submit button',
       };
-      mockedExecuteAction.mockResolvedValue({ success: true });
-      
-      // Act
-      const result = await executeAction(action);
-      
-      // Assert
-      expect(mockedExecuteAction).toHaveBeenCalledWith(action);
+      mockedExecuteBrowserAction.mockResolvedValue({ success: true });
+
+      const result = await executeBrowserAction({} as any, action);
+
+      expect(mockedExecuteBrowserAction).toHaveBeenCalled();
       expect(result.success).toBe(true);
     });
   });
@@ -63,26 +68,26 @@ describe('Integration Tests I1-I10', () => {
   describe('I3: Type action + form submission (Critical)', () => {
     it('should type into input and submit form', async () => {
       const typeAction = {
-        type: 'type',
+        type: 'type' as const,
         target: { selector: '#input', confidence: 1.0 },
         text: 'test input',
         description: 'Type into search field',
       };
       const clickAction = {
-        type: 'click',
+        type: 'click' as const,
         target: { selector: '#submit', confidence: 1.0 },
         description: 'Submit form',
       };
-      mockedExecuteAction
+      mockedExecuteBrowserAction
         .mockResolvedValueOnce({ success: true })
         .mockResolvedValueOnce({ success: true });
-      
-      const result1 = await executeAction(typeAction);
-      const result2 = await executeAction(clickAction);
-      
+
+      const result1 = await executeBrowserAction({} as any, typeAction);
+      const result2 = await executeBrowserAction({} as any, clickAction);
+
       expect(result1.success).toBe(true);
       expect(result2.success).toBe(true);
-      expect(mockedExecuteAction).toHaveBeenCalledTimes(2);
+      expect(mockedExecuteBrowserAction).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -95,100 +100,88 @@ describe('Integration Tests I1-I10', () => {
           confidence: 0.9,
         }),
       };
-      
-      // Simulate multi-step execution
-      const steps = ['step1', 'step2', 'step3'];
-      for (const step of steps) {
-        mockedExecuteAction.mockResolvedValueOnce({ success: true });
+
+      for (let i = 0; i < 3; i++) {
+        mockedExecuteBrowserAction.mockResolvedValueOnce({ success: true });
       }
-      
-      // This test is a placeholder; real integration would involve agent loop
+
       expect(mockLLM.complete).toBeDefined();
-      expect(steps.length).toBe(3);
+      expect(typeof mockLLM.complete).toBe('function');
     });
   });
 
   describe('I5: LLM provider switching (High)', () => {
-    it('should switch between GLM-5.1 and OpenAI-compatible adapters', async () => {
-      // This test ensures provider switching works
-      // Implementation depends on actual provider interface
-      expect(true).toBe(true);
+    it('should create both GLM5 and OpenAI-compatible adapters via ProviderFactory', () => {
+      const { ProviderFactory, GLM5Adapter, OpenAICompatAdapter } = require('@browserautodrive/llm');
+      const glm5 = ProviderFactory.create('glm5', { apiKey: 'test' });
+      const openai = ProviderFactory.create('openai', { apiKey: 'test' });
+      expect(glm5).toBeInstanceOf(GLM5Adapter);
+      expect(openai).toBeInstanceOf(OpenAICompatAdapter);
     });
   });
 
   describe('I6: Error recovery retry success (Critical)', () => {
     it('should retry on element not found and succeed', async () => {
-      // Reset mock to clear any queued implementations from other tests
-      mockedExecuteAction.mockReset();
-      
+      mockedExecuteBrowserAction.mockReset();
+
       const action = {
-        type: 'click',
+        type: 'click' as const,
         target: { selector: '#dynamic', confidence: 0.8 },
         description: 'Click dynamic element',
       };
-      
-      // First call fails, second succeeds
-      mockedExecuteAction
+
+      mockedExecuteBrowserAction
         .mockRejectedValueOnce(new Error('Element not found'))
         .mockResolvedValueOnce({ success: true });
-      
-      // Simulate retry logic
+
+      let result;
       try {
-        await executeAction(action);
+        result = await executeBrowserAction({} as any, action);
       } catch (error) {
-        // retry
-        const result = await executeAction(action);
-        expect(result.success).toBe(true);
+        result = await executeBrowserAction({} as any, action);
       }
-      
-      expect(mockedExecuteAction).toHaveBeenCalledTimes(2);
+
+      expect(mockedExecuteBrowserAction).toHaveBeenCalledTimes(2);
+      if (result) expect(result.success).toBe(true);
     });
   });
 
-  describe('I7: Error recovery 3 retries ask_human (Critical)', () => {
-    it('should fail after 3 retries and ask human', async () => {
-      const action = {
-        type: 'click',
-        target: { selector: '#missing', confidence: 0.5 },
-        description: 'Click missing element',
-      };
-      
-      mockedExecuteAction.mockRejectedValue(new Error('Element not found'));
-      
-      // Simulate three retries then ask_human
+  describe('I7: Error recovery 3 retries then ask_human (Critical)', () => {
+    it('should fail after 3 retries and escalate to ask_human', async () => {
+      const sm = new AgentStateMachine();
+      sm.transition('goal_start');
+      sm.transition('plan_ok');
+
+      mockedExecuteBrowserAction.mockRejectedValue(new Error('Element not found'));
+
       let attempts = 0;
       const maxRetries = 3;
       while (attempts < maxRetries) {
         try {
-          await executeAction(action);
+          await executeBrowserAction({} as any, { type: 'click', target: { selector: '#missing', confidence: 0.5 }, description: 'Click missing' });
         } catch (error) {
           attempts++;
+          sm.incrementRetry();
         }
       }
-      
+
       expect(attempts).toBe(maxRetries);
-      // After retries, should trigger ask_human action
-      // This would be handled by SafetyGuard
+      expect(sm.isMaxRetriesExceeded()).toBe(true);
     });
   });
 
   describe('I8: Safety guard interrupts high-stakes (High)', () => {
-    it('should block high-stakes action without human confirmation', async () => {
+    it('should block high-stakes action without human confirmation', () => {
+      const guard = new SafetyGuard();
       const highStakesAction = {
-        type: 'submit',
-        target: { selector: '#purchase', confidence: 1.0 },
-        description: 'Purchase item',
+        type: 'submit' as const,
+        target: { selector: '#purchase', confidence: 1.0, text: 'Pay Now' },
+        description: 'Submit payment',
       };
-      
-      // Mock SafetyGuard to throw or return requiresHumanConfirmation
-      const mockSafetyGuard = {
-        requireHumanConfirmation: jest.fn().mockRejectedValue(new Error('Human confirmation required')),
-      };
-      
-      // Attempt action
-      await expect(
-        mockSafetyGuard.requireHumanConfirmation(highStakesAction)
-      ).rejects.toThrow('Human confirmation required');
+
+      const result = guard.validateAndGate(highStakesAction);
+      expect(result.allowed).toBe(true);
+      expect(result.needsHumanConfirmation).toBe(true);
     });
   });
 
@@ -197,12 +190,18 @@ describe('Integration Tests I1-I10', () => {
       const mockSnapshot = {
         screenshot: 'base64data',
         accessibilityTree: { role: 'root', name: 'page', children: [] },
+        interactiveElements: [],
+        url: 'https://example.com',
+        title: 'Example',
+        viewportSize: { width: 1280, height: 720 },
+        scrollPosition: { x: 0, y: 0 },
+        timestamp: Date.now(),
       };
-      
-      mockedGetSnapshot.mockResolvedValue(mockSnapshot);
-      
-      const result = await getSnapshot('https://example.com');
-      
+
+      mockedExtractObservation.mockResolvedValue(mockSnapshot as any);
+
+      const result = await extractObservation({} as any);
+
       expect(result.screenshot).toBe('base64data');
       expect(result.accessibilityTree).toBeDefined();
       expect(result.accessibilityTree.role).toBe('root');
@@ -210,13 +209,27 @@ describe('Integration Tests I1-I10', () => {
   });
 
   describe('I10: State persistence across navigation (Medium)', () => {
-    it('should maintain state after page navigation', async () => {
-      // This test verifies that agent state (action history, goal progress) persists
-      // across browser navigation. Implementation depends on StateManager.
-      const state = { goal: 'book flight', step: 2, history: [] };
-      // Simulate navigation
-      // Assert state unchanged
-      expect(state.step).toBe(2);
+    it('should maintain AgentStateMachine state across actions', () => {
+      const sm = new AgentStateMachine();
+      sm.transition('goal_start');
+      sm.transition('plan_ok');
+
+      sm.recordAction({
+        step: 0,
+        action: { type: 'navigate', url: 'https://example.com' },
+        result: { success: true },
+        timestamp: Date.now(),
+      });
+      sm.recordAction({
+        step: 1,
+        action: { type: 'click', target: { selector: '#link', confidence: 0.9 }, description: 'Click link' },
+        result: { success: true },
+        timestamp: Date.now(),
+      });
+
+      expect(sm.getState()).toBe('executing');
+      expect(sm.getActionCount()).toBe(2);
+      expect(sm.getHistory()).toHaveLength(2);
     });
   });
 });
