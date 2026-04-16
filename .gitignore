@@ -9,6 +9,16 @@ build/
 *.o
 *.pyc
 
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.sum
+
 # IDE
 .idea/
 .vscode/
