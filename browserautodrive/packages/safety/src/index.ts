@@ -19,6 +19,27 @@ const VALID_ACTION_TYPES = new Set([
 const MAX_GOAL_LENGTH = 500;
 const MIN_CONFIDENCE = 0.5;
 
+const DEFAULT_BLOCKED_HOSTS = [
+  "localhost",
+  "127.0.0.1",
+  "0.0.0.0",
+  "169.254.169.254",
+  "metadata.google.internal",
+];
+
+function isPrivateHost(hostname: string): boolean {
+  if (DEFAULT_BLOCKED_HOSTS.includes(hostname)) return true;
+  const parts = hostname.split(".");
+  if (parts.length === 4) {
+    const ip = parts.map(Number);
+    if (ip[0] === 10) return true;
+    if (ip[0] === 172 && ip[1] >= 16 && ip[1] <= 31) return true;
+    if (ip[0] === 192 && ip[1] === 168) return true;
+  }
+  if (hostname.endsWith(".local") || hostname.endsWith(".internal")) return true;
+  return false;
+}
+
 export interface ValidationResult {
   valid: boolean;
   error?: string;
@@ -50,6 +71,17 @@ export class ActionValidator {
             valid: false,
             error: "navigate url must start with http:// or https://",
           };
+        }
+        try {
+          const parsed = new URL(action.url);
+          if (isPrivateHost(parsed.hostname)) {
+            return {
+              valid: false,
+              error: `navigate to private/internal host "${parsed.hostname}" is blocked (SSRF protection)`,
+            };
+          }
+        } catch {
+          return { valid: false, error: "navigate url is malformed" };
         }
         break;
 

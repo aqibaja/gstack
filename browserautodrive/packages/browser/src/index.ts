@@ -190,8 +190,14 @@ export async function executeBrowserAction(
     }
     return { success: true };
   } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown browser error";
-    return { success: false, error: message };
+    let message: string;
+    let errorType: string | undefined;
+    if (error instanceof Error) {
+      message = error.message;
+      errorType = error.constructor.name;
+    } else {
+      message = "Unknown browser error";
+    }
+    return { success: false, error: errorType ? `[${errorType}] ${message}` : message };
   }
 }
