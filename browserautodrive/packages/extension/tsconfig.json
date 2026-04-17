@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "declaration": true,
+    "sourceMap": true,
+    "lib": ["ES2022", "DOM"],
+    "types": ["chrome"]
+  },
+  "include": ["content/**/*", "popup/**/*", "background/**/*", "shared/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
