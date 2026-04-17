@@ -1,0 +1,43 @@
+{
+  "name": "@browserautodrive/cli",
+  "version": "0.1.0",
+  "description": "BrowserAutoDrive CLI - Command line interface for browser automation",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "browserautodrive": "./bin/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:ci": "jest --ci --coverage",
+    "start": "node ./bin/cli.js"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@browserautodrive/core": "^0.1.0",
+    "@browserautodrive/browser": "^0.1.0",
+    "@browserautodrive/observe": "^0.1.0",
+    "@browserautodrive/safety": "^0.1.0",
+    "@browserautodrive/llm": "^0.1.0",
+    "commander": "^12.0.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/__tests__/**/*.ts",
+      "**/?(*.)+(spec|test).ts"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts"
+    ]
+  }
+}
