@@ -5,10 +5,16 @@
     "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
+    "jsx": "react-jsx",
     "rootDir": ".",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["chrome"]
   },
-  "include": ["content/**/*", "popup/**/*", "background/**/*", "shared/**/*"],
+  "include": [
+    "content/**/*",
+    "popup/**/*",
+    "background/service-worker.ts",
+    "shared/**/*"
+  ],
   "exclude": ["node_modules", "dist", "**/__tests__/**"]
 }

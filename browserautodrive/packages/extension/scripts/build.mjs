@@ -24,17 +24,10 @@ const entryPoints = [
     outdir: path.join(distRoot, "content"),
     format: "iife",
   },
-  {
-    entry: path.join(packageRoot, "popup/popup.ts"),
-    outdir: path.join(distRoot, "popup"),
-    format: "iife",
-  },
 ];
 
 const staticFiles = [
   "manifest.json",
-  "popup/popup.html",
-  "popup/popup.css",
   "content/preview.css",
 ];
 
@@ -132,12 +125,7 @@ function stageIcons() {
 
 function verifyManifestOutputs() {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-  const requiredPaths = new Set([
-    "manifest.json",
-    "popup/popup.html",
-    "popup/popup.css",
-    "popup/popup.js",
-  ]);
+  const requiredPaths = new Set(["manifest.json"]);
 
   if (manifest.background?.service_worker) {
     requiredPaths.add(manifest.background.service_worker);

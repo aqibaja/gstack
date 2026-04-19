@@ -1,0 +1,72 @@
+.composer,
+.controlStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.helperText {
+  margin: 0;
+  color: #57534e;
+  line-height: 1.5;
+}
+
+.textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 88px;
+  border: 1px solid rgba(251, 146, 60, 0.28);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 12px 14px;
+  color: #1c1917;
+  outline: none;
+}
+
+.textarea:focus {
+  border-color: rgba(249, 115, 22, 0.8);
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.16);
+}
+
+.buttonRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.primaryButton,
+.secondaryButton {
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 11px 14px;
+  font-weight: 700;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, #f97316, #facc15);
+  color: #431407;
+}
+
+.secondaryButton {
+  background: rgba(28, 25, 23, 0.08);
+  color: #292524;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.toggleRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #44403c;
+  font-size: 13px;
+}
+
+.toggleRow input {
+  accent-color: #ea580c;
+}

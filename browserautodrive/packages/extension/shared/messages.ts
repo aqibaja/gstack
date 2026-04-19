@@ -1,6 +1,6 @@
-// BrowserAutoDrive Extension — Shared Message Types
-
 export type TierType = "free" | "pro";
+export type PopupScreen = "idle" | "preview" | "executing" | "done" | "error";
+export type RunStatus = "idle" | "previewing" | "awaiting_confirm" | "executing" | "done" | "failed";
 
 export interface ElementRect {
   x: number;
@@ -18,7 +18,14 @@ export interface ElementSnapshot {
   ariaLabel: string;
 }
 
-export interface PreviewStepPayload {
+export interface PopupRunState {
+  goal: string;
+  status: RunStatus;
+  currentStepIndex: number;
+  totalSteps: number;
+}
+
+export interface PopupStepState {
   stepId: string;
   stepNumber: number;
   totalSteps: number;
@@ -26,6 +33,26 @@ export interface PreviewStepPayload {
   action: string;
   value?: string;
   reasoning: string;
+}
+
+export interface PopupErrorState {
+  code: string;
+  message: string;
+  recoverable: boolean;
+}
+
+export interface PopupViewModel {
+  screen: PopupScreen;
+  goalDraft: string;
+  tier: TierType;
+  autoExecuteEnabled: boolean;
+  autoExecuteDelayMs: number;
+  run: PopupRunState | null;
+  step: PopupStepState | null;
+  error: PopupErrorState | null;
+}
+
+export interface PreviewStepPayload extends PopupStepState {
   tier: TierType;
 }
 
@@ -49,6 +76,20 @@ export interface ElementSnapshotMessage {
   };
 }
 
+export interface PopupReadyMessage {
+  type: "POPUP_READY";
+}
+
+export interface PopupStateMessage {
+  type: "POPUP_STATE";
+  payload: PopupViewModel;
+}
+
+export interface PopupErrorMessage {
+  type: "POPUP_ERROR";
+  payload: PopupErrorState;
+}
+
 export interface StepConfirmMessage {
   type: "STEP_CONFIRM";
   payload: {
@@ -63,20 +104,6 @@ export interface StepSkipMessage {
   };
 }
 
-export interface StepSkippedAllMessage {
-  type: "STEP_SKIP_ALL";
-  payload: {
-    stepId: string;
-  };
-}
-
-export interface AutoExecuteTimeoutMessage {
-  type: "AUTO_EXECUTE_TIMEOUT";
-  payload: {
-    stepId: string;
-  };
-}
-
 export interface UserIntervenedMessage {
   type: "USER_INTERVENED";
   payload: {
@@ -84,13 +111,15 @@ export interface UserIntervenedMessage {
   };
 }
 
-export interface TierConfigMessage {
-  type: "TIER_CONFIG";
+export interface SetAutoExecuteMessage {
+  type: "SET_AUTO_EXECUTE";
   payload: {
-    tier: TierType;
-    autoExecute: boolean;
-    autoExecuteDelayMs: number;
+    enabled: boolean;
   };
+}
+
+export interface ResetPopupMessage {
+  type: "RESET_POPUP";
 }
 
 export interface DOMAccessibilityNode {
@@ -168,12 +197,14 @@ export type ExtensionMessage =
   | PreviewStepMessage
   | ClearPreviewMessage
   | ElementSnapshotMessage
+  | PopupReadyMessage
+  | PopupStateMessage
+  | PopupErrorMessage
   | StepConfirmMessage
   | StepSkipMessage
-  | StepSkippedAllMessage
-  | AutoExecuteTimeoutMessage
   | UserIntervenedMessage
-  | TierConfigMessage
+  | SetAutoExecuteMessage
+  | ResetPopupMessage
   | PageMutatedMessage
   | GetSnapshotMessage
   | SnapshotResponseMessage

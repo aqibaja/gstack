@@ -2,61 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BrowserAutoDrive</title>
-  <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
-  <div id="app">
-    <header>
-      <h1>BrowserAutoDrive</h1>
-      <span id="tier-badge" class="badge badge-free">Free</span>
-    </header>
-
-    <!-- No active task -->
-    <section id="idle-state" class="state-section">
-      <p class="muted">No active automation. Enter a goal to begin.</p>
-      <input type="text" id="goal-input" placeholder="e.g. Search for flights to NYC" />
-      <button id="start-btn" class="btn btn-primary">Start</button>
-    </section>
-
-    <!-- Active step preview -->
-    <section id="step-state" class="state-section hidden">
-      <div class="step-card">
-        <div class="step-header">
-          <span id="step-number" class="step-number"></span>
-          <span id="step-progress" class="step-progress muted"></span>
-        </div>
-        <div class="step-action">
-          <span id="action-icon" class="action-icon"></span>
-          <span id="action-type" class="action-type"></span>
-        </div>
-        <p id="step-reasoning" class="step-reasoning"></p>
-        <div id="step-target" class="step-target">
-          <code id="target-selector"></code>
-        </div>
-      </div>
-
-      <div class="step-actions">
-        <button id="confirm-btn" class="btn btn-primary">Confirm</button>
-        <button id="skip-btn" class="btn btn-secondary">Skip</button>
-      </div>
-
-      <!-- Pro tier: auto-execute toggle -->
-      <div id="auto-execute-section" class="auto-execute hidden">
-        <label class="toggle-label">
-          <input type="checkbox" id="auto-execute-toggle" />
-          <span>Auto-execute (500ms)</span>
-        </label>
-      </div>
-    </section>
-
-    <!-- Completed -->
-    <section id="done-state" class="state-section hidden">
-      <p class="success">Automation complete.</p>
-      <button id="reset-btn" class="btn btn-secondary">New Goal</button>
-    </section>
-  </div>
-
-  <script src="popup.js"></script>
+  <div id="root"></div>
+  <script type="module" src="./main.tsx"></script>
 </body>
 </html>
