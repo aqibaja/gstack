@@ -235,6 +235,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         break;
       }
 
+      case "PAGE_MUTATED": {
+        // Page DOM changed — content script is notifying us.
+        // Store the mutation event for agent loop consumption.
+        // In a full implementation, this would trigger a re-observation
+        // of the page to update the agent's understanding of page state.
+        console.log("[BAD] Page mutated:", message.payload.url, "at", message.payload.timestamp);
+        break;
+      }
+
+      case "SNAPSHOT_RESPONSE": {
+        // Content script returned a full DOM snapshot.
+        // This is the response to GET_SNAPSHOT.
+        // In a full implementation, this feeds into the agent loop's
+        // OBSERVE phase instead of Playwright-based observation.
+        console.log("[BAD] Snapshot received:", message.payload.url, message.payload.interactiveElements.length, "interactive elements");
+        break;
+      }
+
       case "START_GOAL": {
         // User entered a goal in the popup
         const tierConfig = await getTierConfig();
@@ -273,6 +291,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handler().catch((err) => console.error("[BAD] Message handler error:", err));
   return false; // not using sendResponse
 });
+
+// ─── DOM Observation ─────────────────────────────────────────────────────────
+
+async function requestSnapshot(tabId: number): Promise<void> {
+  await sendToTab(tabId, { type: "GET_SNAPSHOT" });
+}
 
 // ─── Extension Lifecycle ─────────────────────────────────────────────────────
 

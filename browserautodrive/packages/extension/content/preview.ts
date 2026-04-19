@@ -283,3 +283,5 @@ chrome.runtime.onMessage.addListener((message, sender, _sendResponse) => {
       return false;
   }
 });
+
+export {};

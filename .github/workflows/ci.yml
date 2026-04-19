@@ -58,9 +58,28 @@ jobs:
           path: browserautodrive/packages/cli/dist/
           retention-days: 7
 
+  extension-build:
+    name: Build Extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: make setup
+      - name: Build extension
+        run: make check-extension
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: browserautodrive-extension
+          path: browserautodrive/packages/extension/dist/
+          retention-days: 7
+
   release:
     name: Release
-    needs: [test, lint, build]
+    needs: [test, lint, build, extension-build]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:

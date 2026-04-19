@@ -5,13 +5,10 @@
     "moduleResolution": "node",
     "strict": true,
     "esModuleInterop": true,
-    "outDir": "./dist",
     "rootDir": ".",
-    "declaration": true,
-    "sourceMap": true,
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": ["chrome"]
   },
   "include": ["content/**/*", "popup/**/*", "background/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/__tests__/**"]
 }

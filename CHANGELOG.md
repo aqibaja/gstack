@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-19
+
+### Added
+- Esbuild-based multi-entry Chrome extension build pipeline with manifest, popup assets, and generated icon staging
+- Extension-specific `make build-extension` and `make check-extension` targets
+- Dedicated CI extension build job with uploaded unpacked-extension artifacts
+
+### Changed
+- Extension package scripts now use `tsc --noEmit` for type checking and `build.mjs` for artifact generation
+- Root lint target now runs the workspace lint pipeline instead of a no-op compiler invocation
+
 ## [0.3.0] - 2026-04-19
 
 ### Added
