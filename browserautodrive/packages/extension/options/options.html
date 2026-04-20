@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrowserAutoDrive - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <h1>BrowserAutoDrive Settings</h1>
+
+    <section class="card">
+      <h2>LLM Provider</h2>
+      <div class="form-group">
+        <label for="provider">Provider</label>
+        <select id="provider">
+          <option value="glm5">GLM-5 (Zhipu AI)</option>
+          <option value="openai">OpenAI</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="apiKey">API Key</label>
+        <input type="password" id="apiKey" placeholder="Enter your API key" autocomplete="off">
+        <button type="button" id="toggleKey" class="btn-secondary">Show</button>
+      </div>
+
+      <div class="form-group">
+        <label for="baseUrl">Base URL (optional)</label>
+        <input type="text" id="baseUrl" placeholder="Leave blank for default">
+      </div>
+
+      <div class="form-group">
+        <label for="model">Model (optional)</label>
+        <input type="text" id="model" placeholder="Leave blank for default">
+      </div>
+
+      <div class="actions">
+        <button type="button" id="save" class="btn-primary">Save</button>
+        <button type="button" id="test" class="btn-secondary">Test Connection</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="card">
+      <h2>Tier</h2>
+      <div class="form-group">
+        <label for="tier">Current Tier</label>
+        <select id="tier">
+          <option value="free">Free (always requires confirmation)</option>
+          <option value="pro">Pro (auto-execute available)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="autoExecute">
+          Enable auto-execute for low-risk actions (Pro only)
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

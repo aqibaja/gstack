@@ -24,11 +24,19 @@ const entryPoints = [
     outdir: path.join(distRoot, "content"),
     format: "iife",
   },
+  {
+    entry: path.join(packageRoot, "content/action-executor.ts"),
+    outdir: path.join(distRoot, "content"),
+    format: "iife",
+  },
 ];
 
 const staticFiles = [
   "manifest.json",
   "content/preview.css",
+  "options/options.html",
+  "options/options.css",
+  "options/options.js",
 ];
 
 const manifestPath = path.join(packageRoot, "manifest.json");

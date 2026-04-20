@@ -1,4 +1,6 @@
 import type {
+  ActionResultMessage,
+  ActionType,
   ExtensionMessage,
   PopupErrorMessage,
   PopupErrorState,
@@ -8,6 +10,7 @@ import type {
   RunStatus,
   TierType,
 } from "../shared/messages";
+import { startAgentLoop, stopAgentLoop, getAgentLoopState, restoreAgentLoop } from "./agent-loop";
 
 interface ActiveRunState {
   goal: string;
@@ -269,8 +272,53 @@ async function confirmCurrentStep(): Promise<void> {
 
   await sendToTab(state.activeRun.tabId, { type: "CLEAR_PREVIEW" });
 
-  // Placeholder execution path until action execution is wired.
-  await advanceToNextStep();
+  const step = getCurrentStep(state);
+  if (!step) {
+    await setRuntimeError({
+      code: "missing_step",
+      message: "No step found to execute.",
+      recoverable: false,
+    });
+    return;
+  }
+
+  try {
+    await chrome.tabs.sendMessage(state.activeRun.tabId, {
+      type: "EXECUTE_ACTION",
+      payload: {
+        stepId: step.stepId,
+        selector: step.selector,
+        action: step.action as ActionType,
+        value: step.value,
+      },
+    });
+  } catch (error) {
+    await setRuntimeError({
+      code: "content_script_unavailable",
+      message: "Could not reach the content script. Reload the page and try again.",
+      recoverable: true,
+    });
+    state.activeRun.status = "awaiting_confirm";
+    await publishPopupState();
+  }
+}
+
+async function handleActionResult(result: ActionResultMessage["payload"]): Promise<void> {
+  const state = await ensureRuntimeState();
+  if (!state.activeRun) return;
+  if (!isCurrentStep(result.stepId)) return;
+
+  if (result.status === "success") {
+    await advanceToNextStep();
+  } else {
+    await setRuntimeError({
+      code: result.errorCode || "action_failed",
+      message: result.errorMessage || "Action execution failed.",
+      recoverable: true,
+    });
+    state.activeRun.status = "awaiting_confirm";
+    await publishPopupState();
+  }
 }
 
 async function skipCurrentStep(): Promise<void> {
@@ -350,30 +398,30 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender) => {
 
         try {
           const tabId = await getActiveTabId();
-          const nextStep: PopupStepState = {
-            stepId: crypto.randomUUID(),
-            stepNumber: 1,
-            totalSteps: 1,
-            selector: "body",
-            action: "click",
-            reasoning: `Executing goal: ${goal}`,
-          };
+          const { sessionId } = await startAgentLoop(goal, tabId);
 
           state.goalDraft = goal;
           state.error = null;
           state.activeRun = {
             goal,
-            steps: [nextStep],
+            steps: [{
+              stepId: sessionId,
+              stepNumber: 1,
+              totalSteps: 1,
+              selector: "body",
+              action: "click",
+              reasoning: `Executing goal: ${goal}`,
+            }],
             currentStepIndex: 0,
             tabId,
-            status: "idle",
+            status: "executing",
           };
 
-          await startPreview(nextStep);
+          await publishPopupState();
         } catch (error) {
           await setRuntimeError({
-            code: "active_tab_unavailable",
-            message: error instanceof Error ? error.message : "No active tab found for this popup session.",
+            code: "agent_loop_failed",
+            message: error instanceof Error ? error.message : "Failed to start agent loop.",
             recoverable: true,
           });
         }
@@ -464,6 +512,11 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender) => {
           message.payload.interactiveElements.length,
           "interactive elements"
         );
+        break;
+      }
+
+      case "ACTION_RESULT": {
+        await handleActionResult(message.payload);
         break;
       }
 

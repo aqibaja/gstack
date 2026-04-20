@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@browserautodrive/core": "*",
+    "@browserautodrive/llm": "*",
+    "@browserautodrive/safety": "*",
     "esbuild": "^0.25.12",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

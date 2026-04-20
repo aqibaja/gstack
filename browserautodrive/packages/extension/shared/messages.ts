@@ -1,6 +1,7 @@
 export type TierType = "free" | "pro";
 export type PopupScreen = "idle" | "preview" | "executing" | "done" | "error";
 export type RunStatus = "idle" | "previewing" | "awaiting_confirm" | "executing" | "done" | "failed";
+export type ActionType = "click" | "type" | "select" | "navigate" | "scroll" | "wait";
 
 export interface ElementRect {
   x: number;
@@ -193,6 +194,38 @@ export interface StartGoalMessage {
   };
 }
 
+export interface ExecuteActionMessage {
+  type: "EXECUTE_ACTION";
+  payload: {
+    stepId: string;
+    selector?: string;
+    action: ActionType;
+    value?: string;
+    url?: string;
+    timeoutMs?: number;
+  };
+}
+
+export interface ActionResultMessage {
+  type: "ACTION_RESULT";
+  payload: {
+    stepId: string;
+    action: ActionType;
+    status: "success" | "failed";
+    errorCode?: string;
+    errorMessage?: string;
+    urlBefore: string;
+    urlAfter: string;
+    timestamp: number;
+    durationMs: number;
+    target?: {
+      selector?: string;
+      tagName?: string;
+      text?: string;
+    };
+  };
+}
+
 export type ExtensionMessage =
   | PreviewStepMessage
   | ClearPreviewMessage
@@ -210,4 +243,6 @@ export type ExtensionMessage =
   | SnapshotResponseMessage
   | StartObservingMessage
   | StopObservingMessage
-  | StartGoalMessage;
+  | StartGoalMessage
+  | ExecuteActionMessage
+  | ActionResultMessage;
