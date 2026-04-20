@@ -1,0 +1,98 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 247, 237, 0.94));
+  box-shadow: 0 14px 32px rgba(120, 53, 15, 0.12);
+  padding: 16px;
+  outline: none;
+}
+
+.card:focus-visible {
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.5), 0 14px 32px rgba(120, 53, 15, 0.12);
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.stepNumber {
+  color: #9a3412;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stepProgress {
+  color: #78716c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.goalPill {
+  margin: 0;
+  align-self: flex-start;
+  border-radius: 999px;
+  background: rgba(194, 65, 12, 0.1);
+  color: #9a3412;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.actionRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(251, 191, 36, 0.22);
+  color: #c2410c;
+  font-size: 18px;
+}
+
+.actionLabel {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.reasoning {
+  margin: 0;
+  color: #57534e;
+  line-height: 1.5;
+}
+
+.selectorBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 14px;
+  background: rgba(255, 237, 213, 0.8);
+  padding: 12px;
+}
+
+.selectorLabel {
+  color: #9a3412;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.selectorValue {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #7c2d12;
+  font-size: 12px;
+}

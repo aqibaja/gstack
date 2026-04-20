@@ -1,0 +1,129 @@
+:global(*) {
+  box-sizing: border-box;
+}
+
+:global(body) {
+  margin: 0;
+  min-width: 360px;
+  background:
+    radial-gradient(circle at top, rgba(249, 115, 22, 0.18), transparent 45%),
+    linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%);
+  color: #292524;
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+:global(button),
+:global(textarea),
+:global(input) {
+  font: inherit;
+}
+
+.appShell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 420px;
+  padding: 18px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: #c2410c;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.headerMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.badgeFree,
+.badgePro {
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badgeFree {
+  background: #e7e5e4;
+  color: #44403c;
+}
+
+.badgePro {
+  background: #facc15;
+  color: #713f12;
+}
+
+.statusText {
+  color: #78716c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.contentStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel,
+.errorPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(251, 191, 36, 0.32);
+}
+
+.errorPanel {
+  background: rgba(254, 242, 242, 0.9);
+  border: 1px solid rgba(248, 113, 113, 0.32);
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.panelBody {
+  margin: 0;
+  color: #57534e;
+  line-height: 1.5;
+}
+
+.secondaryButton {
+  align-self: flex-start;
+  border: 0;
+  border-radius: 999px;
+  background: #1c1917;
+  color: #fff;
+  cursor: pointer;
+  padding: 10px 14px;
+}

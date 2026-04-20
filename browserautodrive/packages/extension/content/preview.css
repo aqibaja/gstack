@@ -1,0 +1,14 @@
+/* BrowserAutoDrive — Preview overlay styles (injected as content script) */
+
+/* The overlay div is created programmatically in preview.ts, but we define
+   a CSS fallback in case styles are stripped by aggressive site CSP. */
+#bad-preview-overlay,
+[data-bad-overlay="true"] {
+  position: fixed !important;
+  border: 2px dashed #facc15 !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+  box-sizing: border-box !important;
+  background: transparent !important;
+  transition: top 0.15s ease, left 0.15s ease, width 0.15s ease, height 0.15s ease !important;
+}
