@@ -35,6 +35,45 @@ let runtimeState: WorkerRuntimeState | null = null;
 let autoExecuteTimeout: ReturnType<typeof setTimeout> | null = null;
 let userIntervenedForStep: string | null = null;
 
+const knownTabs = new Set<number>();
+
+function registerTab(tabId: number): void {
+  knownTabs.add(tabId);
+  console.log("[BAD] Tab registered:", tabId);
+}
+
+function unregisterTab(tabId: number): void {
+  knownTabs.delete(tabId);
+  console.log("[BAD] Tab unregistered:", tabId);
+}
+
+function isTabKnown(tabId: number): boolean {
+  return knownTabs.has(tabId);
+}
+
+function setupTabLifecycleListeners(): void {
+  chrome.tabs.onRemoved.addListener((tabId) => {
+    unregisterTab(tabId);
+    if (runtimeState?.activeRun?.tabId === tabId) {
+      stopAgentLoop();
+      runtimeState.activeRun = null;
+      runtimeState.error = {
+        code: "tab_closed",
+        message: "The target tab was closed. Automation stopped.",
+        recoverable: false,
+      };
+      void persistRuntimeState();
+      void publishPopupState();
+    }
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status === "complete" && isTabKnown(tabId)) {
+      console.log("[BAD] Tab reloaded:", tabId);
+    }
+  });
+}
+
 function getRuntimeStorageArea(): chrome.storage.StorageArea {
   return chrome.storage.session ?? chrome.storage.local;
 }
@@ -336,6 +375,7 @@ function startAutoExecuteTimeout(stepId: string): void {
     if (!runtimeState?.activeRun) return;
     if (userIntervenedForStep === stepId) return;
     if (!isCurrentStep(stepId)) return;
+    if (runtimeState.activeRun.status !== "awaiting_confirm") return;
 
     void confirmCurrentStep();
   }, AUTO_EXECUTE_DELAY_MS);
@@ -398,6 +438,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender) => {
 
         try {
           const tabId = await getActiveTabId();
+          registerTab(tabId);
           const { sessionId } = await startAgentLoop(goal, tabId);
 
           state.goalDraft = goal;
@@ -542,3 +583,5 @@ chrome.runtime.onInstalled.addListener(() => {
     await persistRuntimeState();
   });
 });
+
+setupTabLifecycleListeners();

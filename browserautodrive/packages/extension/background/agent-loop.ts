@@ -15,6 +15,8 @@ const MAX_ACTIONS_PER_GOAL = 50;
 const MAX_RETRIES = 3;
 const NAVIGATION_SETTLE_MS = 2000;
 const STORAGE_KEY_AGENT_STATE = "bad.agentState";
+const ALARM_NAME = "bad.agentKeepalive";
+const ALARM_PERIOD_MS = 25 * 1000;
 
 export type AgentLoopStatus = "idle" | "running" | "paused" | "completed" | "failed" | "cancelled";
 
@@ -63,6 +65,38 @@ async function loadState(): Promise<AgentLoopState | null> {
       resolve(result[STORAGE_KEY_AGENT_STATE] || null);
     });
   });
+}
+
+async function createKeepaliveAlarm(): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.alarms.create(ALARM_NAME, { periodInMinutes: ALARM_PERIOD_MS / 60000 }, () => {
+      console.log("[BAD][agent-loop] Keepalive alarm created");
+      resolve();
+    });
+  });
+}
+
+async function clearKeepaliveAlarm(): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.alarms.get(ALARM_NAME, (alarm) => {
+      if (alarm) {
+        chrome.alarms.clear(ALARM_NAME, () => {
+          console.log("[BAD][agent-loop] Keepalive alarm cleared");
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+async function setLoopTerminalStatus(status: AgentLoopStatus): Promise<void> {
+  if (!loopState) return;
+  loopState.status = status;
+  loopState.updatedAt = Date.now();
+  await persistState();
+  await clearKeepaliveAlarm();
 }
 
 async function requestSnapshot(tabId: number): Promise<DOMSnapshotPayload | null> {
@@ -165,6 +199,7 @@ export async function startAgentLoop(goal: string, tabId: number): Promise<{ ses
   abortController = new AbortController();
 
   await persistState();
+  await createKeepaliveAlarm();
 
   void runLoop().catch((error) => {
     console.error("[BAD][agent-loop] Loop failed:", error);
@@ -172,6 +207,7 @@ export async function startAgentLoop(goal: string, tabId: number): Promise<{ ses
       loopState.status = "failed";
       loopState.updatedAt = Date.now();
       void persistState();
+      void clearKeepaliveAlarm();
     }
     isRunning = false;
   });
@@ -193,8 +229,7 @@ async function runLoop(): Promise<void> {
     parsedGoal = parseResult.goal;
   } catch (error) {
     console.error("[BAD][agent-loop] Goal parsing failed:", error);
-    loopState.status = "failed";
-    await persistState();
+    await setLoopTerminalStatus("failed");
     return;
   }
 
@@ -203,8 +238,7 @@ async function runLoop(): Promise<void> {
     plan = planner.createPlan(parsedGoal);
   } catch (error) {
     console.error("[BAD][agent-loop] Plan generation failed:", error);
-    loopState.status = "failed";
-    await persistState();
+    await setLoopTerminalStatus("failed");
     return;
   }
 
@@ -217,15 +251,13 @@ async function runLoop(): Promise<void> {
 
   while (isRunning && loopState.status === "running") {
     if (abortController?.signal.aborted) {
-      loopState.status = "cancelled";
-      await persistState();
+      await setLoopTerminalStatus("cancelled");
       break;
     }
 
     if (loopState.actionCount >= MAX_ACTIONS_PER_GOAL) {
       console.warn("[BAD][agent-loop] Max actions exceeded");
-      loopState.status = "failed";
-      await persistState();
+      await setLoopTerminalStatus("failed");
       break;
     }
 
@@ -234,8 +266,7 @@ async function runLoop(): Promise<void> {
       if (!snapshot) {
         consecutiveFailures++;
         if (consecutiveFailures > MAX_RETRIES) {
-          loopState.status = "failed";
-          await persistState();
+          await setLoopTerminalStatus("failed");
           break;
         }
         await new Promise((r) => setTimeout(r, 1000));
@@ -261,8 +292,7 @@ async function runLoop(): Promise<void> {
         console.error("[BAD][agent-loop] LLM decision failed:", error);
         consecutiveFailures++;
         if (consecutiveFailures > MAX_RETRIES) {
-          loopState.status = "failed";
-          await persistState();
+          await setLoopTerminalStatus("failed");
           break;
         }
         await new Promise((r) => setTimeout(r, 2000));
@@ -273,8 +303,7 @@ async function runLoop(): Promise<void> {
 
       if (decision.action.type === "done") {
         console.log("[BAD][agent-loop] Goal completed");
-        loopState.status = "completed";
-        await persistState();
+        await setLoopTerminalStatus("completed");
         break;
       }
 
@@ -298,8 +327,7 @@ async function runLoop(): Promise<void> {
         console.warn(`[BAD][agent-loop] Action failed (${loopState.retryCount}/${MAX_RETRIES}): ${actionResult.error}`);
 
         if (loopState.retryCount >= MAX_RETRIES) {
-          loopState.status = "failed";
-          await persistState();
+          await setLoopTerminalStatus("failed");
           break;
         }
       } else {
@@ -313,8 +341,7 @@ async function runLoop(): Promise<void> {
       console.error("[BAD][agent-loop] Loop iteration error:", error);
       consecutiveFailures++;
       if (consecutiveFailures > MAX_RETRIES) {
-        loopState.status = "failed";
-        await persistState();
+        await setLoopTerminalStatus("failed");
         break;
       }
     }
@@ -328,6 +355,7 @@ export function stopAgentLoop(): void {
     loopState.status = "cancelled";
     loopState.updatedAt = Date.now();
     void persistState();
+    void clearKeepaliveAlarm();
   }
 }
 

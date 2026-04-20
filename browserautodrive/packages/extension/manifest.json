@@ -6,7 +6,9 @@
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "alarms",
+    "tabs"
   ],
   "options_page": "options/options.html",
   "action": {
