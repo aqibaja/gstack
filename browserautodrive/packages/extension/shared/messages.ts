@@ -105,10 +105,33 @@ export interface StepSkipMessage {
   };
 }
 
+export interface StepSkippedAllMessage {
+  type: "STEP_SKIP_ALL";
+  payload: {
+    stepId: string;
+  };
+}
+
+export interface AutoExecuteTimeoutMessage {
+  type: "AUTO_EXECUTE_TIMEOUT";
+  payload: {
+    stepId: string;
+  };
+}
+
 export interface UserIntervenedMessage {
   type: "USER_INTERVENED";
   payload: {
     stepId: string;
+  };
+}
+
+export interface TierConfigMessage {
+  type: "TIER_CONFIG";
+  payload: {
+    tier: TierType;
+    autoExecute: boolean;
+    autoExecuteDelayMs: number;
   };
 }
 
@@ -235,7 +258,10 @@ export type ExtensionMessage =
   | PopupErrorMessage
   | StepConfirmMessage
   | StepSkipMessage
+  | StepSkippedAllMessage
+  | AutoExecuteTimeoutMessage
   | UserIntervenedMessage
+  | TierConfigMessage
   | SetAutoExecuteMessage
   | ResetPopupMessage
   | PageMutatedMessage

@@ -2,9 +2,10 @@
 // Unit tests for the message router, handlers, and validators.
 
 import { describe, it, expect, beforeEach, afterEach, jest } from "@jest/globals";
-import { MessageRouter } from "./message-router";
-import { validateExtensionMessage, getValidationErrorMessage } from "./message-validator";
-import type { ExtensionMessage } from "../shared/messages";
+import { MessageRouter } from "../message-router";
+import type { MessageHandler } from "../message-router";
+import { validateExtensionMessage, getValidationErrorMessage } from "../message-validator";
+import type { ExtensionMessage } from "../../shared/messages";
 
 // ─── Mock Chrome APIs ────────────────────────────────────────────────────────
 
@@ -14,16 +15,19 @@ const mockChrome = {
     onMessage: {
       addListener: jest.fn(),
     },
-    sendMessage: jest.fn().mockResolvedValue(undefined),
-    getContexts: jest.fn().mockResolvedValue([]),
+    sendMessage: jest.fn(async () => undefined),
+    getContexts: jest.fn(async () => []),
   },
   tabs: {
-    sendMessage: jest.fn().mockResolvedValue(undefined),
-    query: jest.fn().mockResolvedValue([{ id: 123 }]),
+    sendMessage: jest.fn(async () => undefined),
+    query: jest.fn(async () => [{ id: 123 }]),
   },
   storage: {
     local: {
-      get: jest.fn().mockImplementation((keys, callback) => {
+      get: jest.fn().mockImplementation((
+        _keys: unknown,
+        callback: (value: { tier: string; autoExecute: boolean }) => void
+      ) => {
         callback({ tier: "free", autoExecute: false });
       }),
       set: jest.fn(),
@@ -33,6 +37,15 @@ const mockChrome = {
 
 // @ts-ignore
 global.chrome = mockChrome;
+
+const getRuntimeListener = (): ((
+  message: unknown,
+  sender: chrome.runtime.MessageSender,
+  sendResponse: (response?: unknown) => void
+) => boolean) => mockChrome.runtime.onMessage.addListener.mock.calls[0][0] as any;
+
+const asMessageHandler = (fn: ReturnType<typeof jest.fn>): MessageHandler =>
+  fn as unknown as MessageHandler;
 
 // ─── Test Data ───────────────────────────────────────────────────────────────
 
@@ -115,7 +128,7 @@ describe("MessageRouter", () => {
       const handler = jest.fn();
       router.registerRoute({
         type: "TEST_MESSAGE",
-        handler,
+        handler: asMessageHandler(handler),
         description: "Test message handler",
       });
 
@@ -126,8 +139,8 @@ describe("MessageRouter", () => {
 
     it("should register multiple routes", () => {
       const handlers = [
-        { type: "MSG1", handler: jest.fn(), description: "Message 1" },
-        { type: "MSG2", handler: jest.fn(), description: "Message 2" },
+        { type: "MSG1", handler: asMessageHandler(jest.fn()), description: "Message 1" },
+        { type: "MSG2", handler: asMessageHandler(jest.fn()), description: "Message 2" },
       ];
 
       router.registerRoutes(handlers);
@@ -138,8 +151,12 @@ describe("MessageRouter", () => {
       const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
       const handler = jest.fn();
 
-      router.registerRoute({ type: "TEST", handler, description: "Test" });
-      router.registerRoute({ type: "TEST", handler, description: "Test duplicate" });
+      router.registerRoute({ type: "TEST", handler: asMessageHandler(handler), description: "Test" });
+      router.registerRoute({
+        type: "TEST",
+        handler: asMessageHandler(handler),
+        description: "Test duplicate",
+      });
 
       expect(router.getRouteCount()).toBe(1);
       expect(consoleSpy).toHaveBeenCalledWith("[BAD] Route already registered for type: TEST");
@@ -152,14 +169,14 @@ describe("MessageRouter", () => {
       const handler = jest.fn().mockReturnValue(false);
       router.registerRoute({
         type: "TEST_MESSAGE",
-        handler,
+        handler: asMessageHandler(handler),
         description: "Test handler",
       });
 
       router.initialize();
 
       // Get the registered listener
-      const listener = mockChrome.runtime.onMessage.addListener.mock.calls[0][0];
+      const listener = getRuntimeListener();
 
       const sendResponse = jest.fn();
       const result = listener(
@@ -176,13 +193,13 @@ describe("MessageRouter", () => {
       const handler = jest.fn();
       router.registerRoute({
         type: "TEST_MESSAGE",
-        handler,
+        handler: asMessageHandler(handler),
         description: "Test handler",
       });
 
       router.initialize();
 
-      const listener = mockChrome.runtime.onMessage.addListener.mock.calls[0][0];
+      const listener = getRuntimeListener();
       const sendResponse = jest.fn();
       const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -202,13 +219,13 @@ describe("MessageRouter", () => {
       const handler = jest.fn();
       router.registerRoute({
         type: "TEST_MESSAGE",
-        handler,
+        handler: asMessageHandler(handler),
         description: "Test handler",
       });
 
       router.initialize();
 
-      const listener = mockChrome.runtime.onMessage.addListener.mock.calls[0][0];
+      const listener = getRuntimeListener();
       const sendResponse = jest.fn();
       const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -228,16 +245,16 @@ describe("MessageRouter", () => {
     });
 
     it("should handle async handlers", async () => {
-      const handler = jest.fn().mockResolvedValue(undefined);
+      const handler = jest.fn(async () => undefined);
       router.registerRoute({
         type: "ASYNC_MESSAGE",
-        handler,
+        handler: asMessageHandler(handler),
         description: "Async handler",
       });
 
       router.initialize();
 
-      const listener = mockChrome.runtime.onMessage.addListener.mock.calls[0][0];
+      const listener = getRuntimeListener();
       const sendResponse = jest.fn();
 
       const result = listener(
@@ -251,16 +268,18 @@ describe("MessageRouter", () => {
     });
 
     it("should handle handler errors", async () => {
-      const handler = jest.fn().mockRejectedValue(new Error("Handler failed"));
+      const handler = jest.fn(async () => {
+        throw new Error("Handler failed");
+      });
       router.registerRoute({
         type: "FAILING_MESSAGE",
-        handler,
+        handler: asMessageHandler(handler),
         description: "Failing handler",
       });
 
       router.initialize();
 
-      const listener = mockChrome.runtime.onMessage.addListener.mock.calls[0][0];
+      const listener = getRuntimeListener();
       const sendResponse = jest.fn();
       const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
@@ -420,7 +439,12 @@ describe("Message Validator", () => {
 describe("Message Flow Integration", () => {
   it("should handle complete preview flow", async () => {
     const router = new MessageRouter();
-    const handler = jest.fn().mockImplementation((message, sender, sendResponse) => {
+    const handler = jest.fn(
+      (
+        message: ExtensionMessage,
+        _sender: chrome.runtime.MessageSender,
+        sendResponse: (response?: unknown) => void
+      ) => {
       if (message.type === "PREVIEW_STEP") {
         // Simulate content script response
         setTimeout(() => {
@@ -439,11 +463,12 @@ describe("Message Flow Integration", () => {
         }, 10);
       }
       return true; // Keep channel open
-    });
+      }
+    );
 
     router.registerRoute({
       type: "PREVIEW_STEP",
-      handler,
+      handler: asMessageHandler(handler),
       description: "Preview step handler",
     });
 

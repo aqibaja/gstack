@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-21
+
+### Added
+- Extension Jest harness for popup/runtime and background message-router coverage
+- New popup runtime test suite with chrome API mocks and setup wiring
+
+### Changed
+- Message router validation now returns explicit `VALIDATION_ERROR` responses for malformed messages
+- Shared extension message contracts now include compatibility message variants used by validator flow
+
 ## [0.4.0] - 2026-04-19
 
 ### Added

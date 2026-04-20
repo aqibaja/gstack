@@ -2,6 +2,7 @@
 // Centralized message routing, validation, and request/response handling.
 
 import type { ExtensionMessage } from "../shared/messages";
+import { getValidationErrorMessage } from "./message-validator";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -84,6 +85,10 @@ export class MessageRouter {
     // Validate message structure
     if (!this.validateMessage(message)) {
       console.warn("[BAD] Invalid message structure:", message);
+      sendResponse({
+        error: getValidationErrorMessage(message) ?? "Invalid message",
+        type: "VALIDATION_ERROR",
+      });
       return false;
     }
 
@@ -110,7 +115,7 @@ export class MessageRouter {
         return true; // Keep message channel open for async response
       }
 
-      return result ?? false;
+      return typeof result === "boolean" ? result : false;
     } catch (error) {
       console.error(`[BAD] Synchronous error in handler for ${typedMessage.type}:`, error);
       sendResponse({
@@ -135,8 +140,20 @@ export class MessageRouter {
 
     const msg = message as Record<string, unknown>;
 
-    // Must have a type field
     if (typeof msg.type !== "string" || msg.type.length === 0) {
+      return false;
+    }
+
+    const noPayloadTypes = new Set([
+      "CLEAR_PREVIEW",
+      "GET_SNAPSHOT",
+      "START_OBSERVING",
+      "STOP_OBSERVING",
+      "POPUP_READY",
+      "RESET_POPUP",
+    ]);
+
+    if (!("payload" in msg) && !noPayloadTypes.has(msg.type)) {
       return false;
     }
 
