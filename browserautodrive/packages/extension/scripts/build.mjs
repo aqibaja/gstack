@@ -86,7 +86,180 @@ function pngChunk(type, data) {
   return Buffer.concat([lengthBuffer, typeBuffer, data, crcBuffer]);
 }
 
-function createSolidPng(size, rgba) {
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function lerpColor(from, to, t) {
+  return [
+    Math.round(lerp(from[0], to[0], t)),
+    Math.round(lerp(from[1], to[1], t)),
+    Math.round(lerp(from[2], to[2], t)),
+    Math.round(lerp(from[3], to[3], t)),
+  ];
+}
+
+function createImage(size) {
+  return Buffer.alloc(size * size * 4);
+}
+
+function blendPixel(pixels, size, x, y, rgba) {
+  if (x < 0 || y < 0 || x >= size || y >= size) {
+    return;
+  }
+
+  const offset = (y * size + x) * 4;
+  const srcAlpha = clamp((rgba[3] ?? 255) / 255, 0, 1);
+  const dstAlpha = pixels[offset + 3] / 255;
+  const outAlpha = srcAlpha + dstAlpha * (1 - srcAlpha);
+
+  if (outAlpha === 0) {
+    pixels[offset] = 0;
+    pixels[offset + 1] = 0;
+    pixels[offset + 2] = 0;
+    pixels[offset + 3] = 0;
+    return;
+  }
+
+  const srcWeight = srcAlpha / outAlpha;
+  const dstWeight = (dstAlpha * (1 - srcAlpha)) / outAlpha;
+
+  pixels[offset] = Math.round(rgba[0] * srcWeight + pixels[offset] * dstWeight);
+  pixels[offset + 1] = Math.round(rgba[1] * srcWeight + pixels[offset + 1] * dstWeight);
+  pixels[offset + 2] = Math.round(rgba[2] * srcWeight + pixels[offset + 2] * dstWeight);
+  pixels[offset + 3] = Math.round(outAlpha * 255);
+}
+
+function fillCircle(pixels, size, centerX, centerY, radius, rgba) {
+  const minX = Math.max(0, Math.floor(centerX - radius));
+  const maxX = Math.min(size - 1, Math.ceil(centerX + radius));
+  const minY = Math.max(0, Math.floor(centerY - radius));
+  const maxY = Math.min(size - 1, Math.ceil(centerY + radius));
+  const radiusSquared = radius * radius;
+
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
+      const dx = x + 0.5 - centerX;
+      const dy = y + 0.5 - centerY;
+      if (dx * dx + dy * dy <= radiusSquared) {
+        blendPixel(pixels, size, x, y, rgba);
+      }
+    }
+  }
+}
+
+function pointInRoundedRect(x, y, left, top, width, height, radius) {
+  const right = left + width;
+  const bottom = top + height;
+  const innerLeft = left + radius;
+  const innerRight = right - radius;
+  const innerTop = top + radius;
+  const innerBottom = bottom - radius;
+
+  if (x >= innerLeft && x < innerRight && y >= top && y < bottom) {
+    return true;
+  }
+
+  if (x >= left && x < right && y >= innerTop && y < innerBottom) {
+    return true;
+  }
+
+  const cornerX = x < innerLeft ? innerLeft : innerRight;
+  const cornerY = y < innerTop ? innerTop : innerBottom;
+  const dx = x + 0.5 - cornerX;
+  const dy = y + 0.5 - cornerY;
+
+  return dx * dx + dy * dy <= radius * radius;
+}
+
+function fillRoundedRect(pixels, size, left, top, width, height, radius, rgba) {
+  const minX = Math.max(0, Math.floor(left));
+  const maxX = Math.min(size - 1, Math.ceil(left + width) - 1);
+  const minY = Math.max(0, Math.floor(top));
+  const maxY = Math.min(size - 1, Math.ceil(top + height) - 1);
+
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
+      if (pointInRoundedRect(x, y, left, top, width, height, radius)) {
+        blendPixel(pixels, size, x, y, rgba);
+      }
+    }
+  }
+}
+
+function drawLine(pixels, size, x0, y0, x1, y1, thickness, rgba) {
+  const steps = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2));
+  const radius = thickness / 2;
+
+  for (let step = 0; step <= steps; step += 1) {
+    const t = step / steps;
+    fillCircle(pixels, size, lerp(x0, x1, t), lerp(y0, y1, t), radius, rgba);
+  }
+}
+
+function drawBrandIcon(size) {
+  const pixels = createImage(size);
+  const slate = [15, 23, 42, 255];
+  const deepSlate = [30, 41, 59, 255];
+  const amber = [249, 115, 22, 255];
+  const gold = [251, 191, 36, 255];
+  const ivory = [255, 247, 237, 255];
+  const border = [251, 146, 60, 255];
+  const shadow = [15, 23, 42, 72];
+  const panel = [248, 250, 252, 255];
+  const rail = [30, 41, 59, 255];
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const nx = size === 1 ? 0 : x / (size - 1);
+      const ny = size === 1 ? 0 : y / (size - 1);
+      const diagonal = clamp((nx * 0.7 + ny * 0.9) / 1.6, 0, 1);
+      let color = lerpColor(slate, deepSlate, diagonal);
+      const glow = Math.max(0, 1 - Math.hypot(nx - 0.18, ny - 0.18) * 2.5);
+      color = lerpColor(color, amber, glow * 0.34);
+      const highlight = Math.max(0, 1 - Math.hypot(nx - 0.78, ny - 0.26) * 2.8);
+      color = lerpColor(color, gold, highlight * 0.18);
+      blendPixel(pixels, size, x, y, color);
+    }
+  }
+
+  const margin = size * 0.16;
+  const panelX = margin;
+  const panelY = size * 0.2;
+  const panelW = size - margin * 2;
+  const panelH = size * 0.56;
+  const radius = Math.max(2, Math.round(size * 0.13));
+
+  fillRoundedRect(pixels, size, panelX + size * 0.02, panelY + size * 0.03, panelW, panelH, radius, shadow);
+  fillRoundedRect(pixels, size, panelX, panelY, panelW, panelH, radius, border);
+  fillRoundedRect(pixels, size, panelX + size * 0.02, panelY + size * 0.02, panelW - size * 0.04, panelH - size * 0.04, Math.max(1, radius - 1), panel);
+
+  const railH = Math.max(2, Math.round(size * 0.12));
+  fillRoundedRect(pixels, size, panelX + size * 0.03, panelY + size * 0.04, panelW - size * 0.06, railH, Math.max(1, Math.round(railH / 2)), rail);
+
+  const dotY = panelY + size * 0.1;
+  const dotR = Math.max(1, size * 0.02);
+  fillCircle(pixels, size, panelX + size * 0.08, dotY, dotR, [251, 146, 60, 255]);
+  fillCircle(pixels, size, panelX + size * 0.13, dotY, dotR, [251, 191, 36, 255]);
+  fillCircle(pixels, size, panelX + size * 0.18, dotY, dotR, [248, 250, 252, 255]);
+
+  const arrowStartX = panelX + panelW * 0.28;
+  const arrowStartY = panelY + panelH * 0.72;
+  const arrowEndX = panelX + panelW * 0.74;
+  const arrowEndY = panelY + panelH * 0.32;
+  const thickness = Math.max(2, size * 0.09);
+  drawLine(pixels, size, arrowStartX, arrowStartY, arrowEndX, arrowEndY, thickness, gold);
+  drawLine(pixels, size, arrowEndX, arrowEndY, arrowEndX - size * 0.13, arrowEndY - size * 0.02, thickness, gold);
+  drawLine(pixels, size, arrowEndX, arrowEndY, arrowEndX - size * 0.02, arrowEndY + size * 0.13, thickness, gold);
+
+  return pixels;
+}
+
+function encodePng(size, pixels) {
   const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
@@ -94,18 +267,15 @@ function createSolidPng(size, rgba) {
   ihdr[8] = 8;
   ihdr[9] = 6;
 
-  const row = Buffer.alloc(1 + size * 4);
-  row[0] = 0;
-  for (let pixel = 0; pixel < size; pixel += 1) {
-    const offset = 1 + pixel * 4;
-    row[offset] = rgba[0];
-    row[offset + 1] = rgba[1];
-    row[offset + 2] = rgba[2];
-    row[offset + 3] = rgba[3];
+  const rows = [];
+  for (let y = 0; y < size; y += 1) {
+    const row = Buffer.alloc(1 + size * 4);
+    row[0] = 0;
+    pixels.copy(row, 1, y * size * 4, (y + 1) * size * 4);
+    rows.push(row);
   }
 
-  const rawImage = Buffer.concat(Array.from({ length: size }, () => row));
-  const idat = deflateSync(rawImage);
+  const idat = deflateSync(Buffer.concat(rows));
 
   return Buffer.concat([
     signature,
@@ -119,14 +289,9 @@ function stageIcons() {
   const iconsDir = path.join(distRoot, "icons");
   ensureDir(iconsDir);
 
-  const palette = {
-    16: [15, 23, 42, 255],
-    48: [37, 99, 235, 255],
-    128: [14, 165, 233, 255],
-  };
-
-  for (const [size, color] of Object.entries(palette)) {
-    const png = createSolidPng(Number(size), color);
+  for (const size of [16, 48, 128]) {
+    const pixels = drawBrandIcon(size);
+    const png = encodePng(size, pixels);
     fs.writeFileSync(path.join(iconsDir, `icon${size}.png`), png);
   }
 }
