@@ -1,10 +1,12 @@
 # BrowserAutoDrive Chrome Extension Technical Execution Plan
 
+Month 1 focus: ship the MV3 extension MVP. The CLI stays as a support harness and eval runner, not the primary user surface.
+
 ## Status
 
 Locked for implementation.
 
-This is the canonical CTO-level execution plan for the BrowserAutoDrive Chrome extension. It consolidates the product plan in `CHROME_EXTENSION_PLAN.md` with the detailed component plans under `packages/extension/`.
+This is the canonical CTO-level execution plan for the BrowserAutoDrive Chrome extension. It consolidates the product plan in `../CHROME_EXTENSION_PLAN.md` with the detailed component plans under `packages/extension/`.
 
 ## Scope
 
@@ -380,7 +382,7 @@ This document satisfies that scope.
 
 ## Supporting Detailed Plans
 
-- `CHROME_EXTENSION_PLAN.md`
+- `../CHROME_EXTENSION_PLAN.md`
 - `packages/extension/popup/POPUP_UI_FOUNDATION_PLAN.md`
 - `packages/extension/content/ACTION_EXECUTOR_PLAN.md`
 - `packages/extension/background/MESSAGE_ROUTER_PLAN.md`

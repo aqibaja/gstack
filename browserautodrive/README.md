@@ -1,6 +1,6 @@
 # BrowserAutoDrive
 
-AI-powered browser automation — enter a natural language goal and the agent navigates, clicks, types, and extracts data autonomously.
+AI-powered browser automation. The Chrome extension is the primary product surface; the CLI remains a support harness and eval runner.
 
 ## Quick Start
 
@@ -53,6 +53,15 @@ npx browserautodrive parse "Search for TypeScript tutorials on Google."
 | `@browserautodrive/safety` | Action validation, safety guard, SSRF protection |
 | `@browserautodrive/cli` | Command-line interface |
 | `@browserautodrive/eval` | Evaluation framework and test suites |
+
+## Extension Pivot
+
+The extension plan is now canonical for product execution:
+
+- MV3 popup for goal entry
+- background service worker for orchestration
+- content scripts for observe/act
+- chrome.storage for session recovery
 
 ## OODA State Machine
 

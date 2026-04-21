@@ -1,6 +1,6 @@
 # BrowserAutoDrive
 
-AI-powered browser automation platform.
+AI-powered browser automation platform. Extension-first. CLI stays as support harness and eval runner.
 
 ## Quick Start
 
@@ -14,7 +14,7 @@ make test
 # Run linting
 make lint
 
-# Build CLI
+# Build CLI / workspace
 make build
 
 # Run the CLI
@@ -36,6 +36,15 @@ npx browserautodrive record https://example.com -o recording.json
 # Run evaluations
 npx browserautodrive eval --reporter json
 ```
+
+## Extension Direction
+
+The Chrome extension is the primary product surface.
+
+- popup drives goal entry
+- background service worker owns execution
+- content scripts observe and act on the page
+- storage backs session recovery after MV3 suspension
 
 ## Project Structure
 

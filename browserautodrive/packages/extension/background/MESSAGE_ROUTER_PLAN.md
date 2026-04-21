@@ -401,6 +401,6 @@ When implementation is complete, hand off to:
 ## References
 
 - `shared/messages.ts`: Message type definitions
-- `CHROME_EXTENSION_PLAN.md`: Product plan
+- `../../../../CHROME_EXTENSION_PLAN.md`: Product plan
 - Chrome Extension Manifest V3 documentation
 - Chrome Extension Messaging documentation
